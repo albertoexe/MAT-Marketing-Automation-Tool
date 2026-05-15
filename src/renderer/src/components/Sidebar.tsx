@@ -3,15 +3,29 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
 import NotificationBell from '../features/notifications/NotificationBell'
 
-const NAV = [
-  { to: '/', label: 'Dashboard', icon: '▦' },
-  { to: '/contatti', label: 'Contatti', icon: '👥' },
-  { to: '/pipeline', label: 'Pipeline', icon: '⟶' },
-  { to: '/attivita', label: 'Attività', icon: '✓' },
+interface NavItem {
+  to: string
+  label: string
+  icon: string
+  roles?: ('marketing' | 'sales')[]
+}
+
+const NAV: NavItem[] = [
+  { to: '/',          label: 'Dashboard',  icon: '▦' },
+  { to: '/contatti',  label: 'Contatti',   icon: '👥' },
+  { to: '/pipeline',  label: 'Pipeline',   icon: '⟶' },
+  { to: '/attivita',  label: 'Attività',   icon: '✓' },
+  // Marketing-only
+  { to: '/scoring',       label: 'Punteggio',    icon: '📊', roles: ['marketing'] },
+  { to: '/automazioni',   label: 'Automazioni',  icon: '⚡', roles: ['marketing'] },
 ]
 
 export default function Sidebar(): React.JSX.Element {
   const { user, signOut } = useAuth()
+
+  const visibleNav = NAV.filter(
+    (item) => !item.roles || (user && item.roles.includes(user.role))
+  )
 
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-gray-200 bg-white">
@@ -28,7 +42,7 @@ export default function Sidebar(): React.JSX.Element {
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 px-2 py-3">
-        {NAV.map((item) => (
+        {visibleNav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

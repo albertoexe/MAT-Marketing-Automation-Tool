@@ -1,13 +1,13 @@
 import type { Contact, ScoreEvent } from '../../types'
-import { MOCK_SCORE_EVENTS, MOCK_USERS } from '../mock/data'
+import { MOCK_SCORE_EVENTS } from '../mock/data'
 import { updateContact } from './contacts'
 import { addActivity } from './activities'
-import { addNotification } from './notifications'
-import { createTask } from './tasks'
+import { handleStageChange } from './lifecycle'
 
 let scoreStore: ScoreEvent[] = [...MOCK_SCORE_EVENTS]
 
-// Predefined scoring events for the UI
+// Predefined scoring events — used as seed for ScoringRules localStorage.
+// The UI reads from getScoringRules() in scoringRules.ts, not directly from here.
 export const SCORE_PRESETS = [
   { label: 'Registrazione evento', delta: 20 },
   { label: 'Partecipazione evento', delta: 30 },
@@ -38,7 +38,7 @@ export async function applyScoreEvent(
   const newScore = Math.max(0, contact.score + delta)
   const now = new Date().toISOString()
 
-  // Save score event
+  // Persist score event
   const event: ScoreEvent = {
     id: `se${Date.now()}`,
     contactId: contact.id,
@@ -48,7 +48,7 @@ export async function applyScoreEvent(
   }
   scoreStore = [event, ...scoreStore]
 
-  // Log activity
+  // Log score change activity
   await addActivity({
     contactId: contact.id,
     type: 'score_change',
@@ -56,51 +56,16 @@ export async function applyScoreEvent(
     userId,
   })
 
-  // Check SQL threshold: was below 100, now at or above
+  // Update score on the contact
+  let updatedContact = await updateContact(contact.id, { score: newScore })
+
+  // SQL threshold: was below 100, now at or above
   const wasSQL = contact.lifecycleStage === 'sql' || contact.lifecycleStage === 'customer'
   const nowSQL = newScore >= 100
 
-  let newStage = contact.lifecycleStage
-  let updatedContact = await updateContact(contact.id, { score: newScore })
-
   if (!wasSQL && nowSQL) {
-    // Auto-promote to SQL
-    newStage = 'sql'
-
-    // Assign to first available sales user
-    const salesUser = MOCK_USERS.find((u) => u.role === 'sales')
-    const assignedOwner = salesUser?.id ?? contact.ownerId
-
-    updatedContact = await updateContact(contact.id, {
-      score: newScore,
-      lifecycleStage: 'sql',
-      ownerId: assignedOwner,
-    })
-
-    // Log stage change
-    await addActivity({
-      contactId: contact.id,
-      type: 'stage_change',
-      description: `Promosso a SQL automaticamente — punteggio ${newScore} ≥ 100.`,
-      userId: 'system',
-    })
-
-    // Create follow-up task
-    const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    await createTask({
-      contactId: contact.id,
-      title: `Contattare ${contact.firstName} ${contact.lastName} — nuovo SQL`,
-      dueDate,
-      completed: false,
-      assignedTo: assignedOwner,
-    })
-
-    // Send notification
-    await addNotification({
-      title: 'Nuovo SQL assegnato',
-      message: `${contact.firstName} ${contact.lastName} ha raggiunto ${newScore} punti ed è stato promosso a SQL.`,
-      contactId: contact.id,
-    })
+    // Delegate everything (stage update, sales assign, notification, task) to lifecycle
+    updatedContact = await handleStageChange(updatedContact, 'sql', 'system')
   }
 
   return updatedContact

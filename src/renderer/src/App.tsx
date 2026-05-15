@@ -8,6 +8,8 @@ import ContactsPage from './features/contacts/ContactsPage'
 import ContactDetailPage from './features/contacts/ContactDetailPage'
 import NewContactPage from './features/contacts/NewContactPage'
 import ImportPage from './features/contacts/ImportPage'
+import ScoringRulesPage from './features/scoring/ScoringRulesPage'
+import AutomationRulesPage from './features/scoring/AutomationRulesPage'
 import PipelinePage from './pages/PipelinePage'
 import TasksPage from './pages/TasksPage'
 
@@ -26,6 +28,8 @@ function AppRoutes(): React.JSX.Element {
         <Route path="/contatti/:id" element={<ContactDetailPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/attivita" element={<TasksPage />} />
+        <Route path="/scoring" element={<ScoringRulesPage />} />
+        <Route path="/automazioni" element={<AutomationRulesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

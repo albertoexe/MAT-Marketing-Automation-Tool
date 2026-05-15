@@ -4,9 +4,12 @@ import type { Contact, Activity, LifecycleStage, LeadSource } from '../../types'
 import { fullName, LEAD_SOURCE_LABELS, STAGE_LABELS } from '../../types'
 import { getContact, updateContact } from '../../lib/services/contacts'
 import { getActivities } from '../../lib/services/activities'
-import { applyScoreEvent, SCORE_PRESETS } from '../../lib/services/scoring'
+import { applyScoreEvent } from '../../lib/services/scoring'
+import { getScoringRules } from '../../lib/services/scoringRules'
+import { handleStageChange } from '../../lib/services/lifecycle'
 import { MOCK_USERS } from '../../lib/mock/data'
 import { useAuth } from '../auth/AuthContext'
+import type { ScoringRule } from '../../types'
 import ScoreBadge from '../../components/ScoreBadge'
 import StageBadge from '../../components/StageBadge'
 
@@ -65,6 +68,7 @@ export default function ContactDetailPage(): React.JSX.Element {
   const [scoring, setScoring] = useState(false)
   const [customDelta, setCustomDelta] = useState('')
   const [customReason, setCustomReason] = useState('')
+  const [scoringRules, setScoringRules] = useState<ScoringRule[]>([])
 
   // Edit mode
   const [editing, setEditing] = useState(false)
@@ -80,6 +84,7 @@ export default function ContactDetailPage(): React.JSX.Element {
   }
 
   useEffect(() => { load() }, [id])
+  useEffect(() => { setScoringRules(getScoringRules().filter((r) => r.enabled)) }, [])
 
   // ── Scoring ──────────────────────────────────────────────────────────────────
 
@@ -136,10 +141,13 @@ export default function ContactDetailPage(): React.JSX.Element {
   }
 
   async function saveEdits(): Promise<void> {
-    if (!contact || !editForm || !validateEdit()) return
+    if (!contact || !editForm || !user || !validateEdit()) return
     setSaving(true)
     try {
-      const updated = await updateContact(contact.id, {
+      const stageChanged = editForm.lifecycleStage !== contact.lifecycleStage
+
+      // Save all non-stage fields first
+      let updated = await updateContact(contact.id, {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         email: editForm.email.trim().toLowerCase(),
@@ -148,14 +156,18 @@ export default function ContactDetailPage(): React.JSX.Element {
         jobTitle: editForm.jobTitle.trim() || undefined,
         linkedinUrl: editForm.linkedinUrl.trim() || undefined,
         leadSource: editForm.leadSource,
-        lifecycleStage: editForm.lifecycleStage,
         ownerId: editForm.ownerId,
         notes: editForm.notes.trim() || undefined,
       })
+
+      // If stage changed, go through lifecycle (notifications + automation)
+      if (stageChanged) {
+        updated = await handleStageChange(updated, editForm.lifecycleStage, user.id)
+      }
+
       setContact(updated)
       setEditing(false)
       setEditForm(null)
-      // Reload activities in case a stage change happened
       setActivities(await getActivities(contact.id))
     } finally {
       setSaving(false)
@@ -344,8 +356,8 @@ export default function ContactDetailPage(): React.JSX.Element {
                 {scoring && (
                   <Section title="Aggiorna punteggio">
                     <div className="space-y-1.5">
-                      {SCORE_PRESETS.map((p) => (
-                        <button key={p.label} onClick={() => handlePreset(p.delta, p.label)}
+                      {scoringRules.map((p) => (
+                        <button key={p.id} onClick={() => handlePreset(p.delta, p.label)}
                           className="flex w-full items-center justify-between rounded-lg border border-gray-100 px-2.5 py-1.5 text-xs hover:bg-gray-50">
                           <span className="text-gray-700">{p.label}</span>
                           <span className={`font-semibold ${p.delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>

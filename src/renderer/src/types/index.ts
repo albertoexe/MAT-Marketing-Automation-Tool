@@ -99,6 +99,24 @@ export interface Opportunity {
   updatedAt: string
 }
 
+// ─── Config entities ─────────────────────────────────────────────────────────
+
+export interface ScoringRule {
+  id: string
+  label: string    // e.g. "Visita pagina prezzi"
+  delta: number    // positive or negative integer
+  enabled: boolean
+}
+
+export interface AutomationRule {
+  id: string
+  triggerStage: LifecycleStage  // destination stage that fires the rule
+  taskTitle: string             // supports {{firstName}} and {{lastName}}
+  dueDaysFromNow: number        // e.g. 1 = due tomorrow
+  assignTo: 'owner' | 'sales'  // who to assign the generated task to
+  enabled: boolean
+}
+
 // ─── Derived helpers ─────────────────────────────────────────────────────────
 
 export type HeatLevel = 'hot' | 'warm' | 'cold'
