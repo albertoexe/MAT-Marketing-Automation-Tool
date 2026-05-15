@@ -210,10 +210,23 @@ export const MOCK_SCORE_EVENTS: ScoreEvent[] = [
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
 export const MOCK_TASKS: Task[] = [
+  // Scaduti
   { id: 't1', contactId: 'c1', title: 'Inviare link della demo', dueDate: '2026-05-07T09:00:00Z', completed: false, assignedTo: 'u3' },
-  { id: 't2', contactId: 'c3', title: 'Follow-up dopo chiamata di discovery', dueDate: '2026-05-06T17:00:00Z', completed: false, assignedTo: 'u4' },
-  { id: 't3', contactId: 'c8', title: 'Confermare orario demo', dueDate: '2026-05-08T10:00:00Z', completed: false, assignedTo: 'u5' },
-  { id: 't4', contactId: 'c5', title: 'Sollecitare firma contratto', dueDate: '2026-05-05T12:00:00Z', completed: true, assignedTo: 'u3' },
+  { id: 't2', contactId: 'c3', title: 'Follow-up dopo chiamata di discovery', dueDate: '2026-05-10T17:00:00Z', completed: false, assignedTo: 'u4' },
+  // Oggi (2026-05-15)
+  { id: 't3', contactId: 'c8', title: 'Chiamare per confermare orario demo', dueDate: '2026-05-15T10:00:00Z', completed: false, assignedTo: 'u3' },
+  { id: 't5', contactId: 'c2', title: 'Inviare proposta commerciale', dueDate: '2026-05-15T14:00:00Z', completed: false, assignedTo: 'u4' },
+  // Domani (2026-05-16)
+  { id: 't6', contactId: 'c4', title: 'Preparare slide per presentazione', dueDate: '2026-05-16T09:00:00Z', completed: false, assignedTo: 'u3' },
+  { id: 't7', contactId: 'c5', title: 'Sollecitare firma contratto', dueDate: '2026-05-16T12:00:00Z', completed: false, assignedTo: 'u5' },
+  // Questa settimana
+  { id: 't8', contactId: 'c6', title: 'Aggiornare CRM con note meeting', dueDate: '2026-05-19T11:00:00Z', completed: false, assignedTo: 'u4' },
+  { id: 't9', contactId: 'c7', title: 'Inviare email di nurturing', dueDate: '2026-05-20T16:00:00Z', completed: false, assignedTo: 'u1' },
+  // Oltre
+  { id: 't10', contactId: 'c1', title: 'Review trimestrale account', dueDate: '2026-05-28T10:00:00Z', completed: false, assignedTo: 'u3' },
+  { id: 't11', contactId: 'c9', title: 'Demo di approfondimento funzionalità', dueDate: '2026-06-02T15:00:00Z', completed: false, assignedTo: 'u5' },
+  // Completato (non mostrato di default)
+  { id: 't4', contactId: 'c5', title: 'Primo contatto telefonico', dueDate: '2026-05-12T12:00:00Z', completed: true, assignedTo: 'u3' },
 ]
 
 // ─── Notifications ────────────────────────────────────────────────────────────

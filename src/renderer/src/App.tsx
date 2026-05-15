@@ -6,6 +6,8 @@ import AppShell from './components/AppShell'
 import DashboardPage from './pages/DashboardPage'
 import ContactsPage from './features/contacts/ContactsPage'
 import ContactDetailPage from './features/contacts/ContactDetailPage'
+import NewContactPage from './features/contacts/NewContactPage'
+import ImportPage from './features/contacts/ImportPage'
 import PipelinePage from './pages/PipelinePage'
 import TasksPage from './pages/TasksPage'
 
@@ -19,6 +21,8 @@ function AppRoutes(): React.JSX.Element {
       <Route element={<AppShell />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/contatti" element={<ContactsPage />} />
+        <Route path="/contatti/nuovo" element={<NewContactPage />} />
+        <Route path="/contatti/importa" element={<ImportPage />} />
         <Route path="/contatti/:id" element={<ContactDetailPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/attivita" element={<TasksPage />} />

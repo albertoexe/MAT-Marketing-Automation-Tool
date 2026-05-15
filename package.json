@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
+    "@types/papaparse": "^5.5.2",
+    "papaparse": "^5.5.3",
     "react-router-dom": "^7.15.0"
   },
   "devDependencies": {

@@ -1,41 +1,56 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Contact, LifecycleStage } from '../../types'
+import type { Contact, LifecycleStage, LeadSource } from '../../types'
 import { fullName, STAGE_LABELS, LEAD_SOURCE_LABELS } from '../../types'
 import { getContacts } from '../../lib/services/contacts'
 import { MOCK_USERS } from '../../lib/mock/data'
 import ScoreBadge from '../../components/ScoreBadge'
 import StageBadge from '../../components/StageBadge'
 
-const STAGE_FILTERS: { value: LifecycleStage | 'all'; label: string }[] = [
-  { value: 'all', label: 'Tutti' },
-  { value: 'lead', label: STAGE_LABELS.lead },
-  { value: 'mql', label: STAGE_LABELS.mql },
-  { value: 'sql', label: STAGE_LABELS.sql },
-  { value: 'customer', label: STAGE_LABELS.customer },
-  { value: 'lost', label: STAGE_LABELS.lost },
-]
+const ALL_STAGES: LifecycleStage[] = ['lead', 'mql', 'sql', 'customer', 'lost']
+const ALL_SOURCES: LeadSource[] = ['manual', 'csv_import', 'form', 'event', 'linkedin']
 
 export default function ContactsPage(): React.JSX.Element {
   const navigate = useNavigate()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState<LifecycleStage | 'all'>('all')
+
+  // Multi-select stage filter — empty set = "tutti"
+  const [selectedStages, setSelectedStages] = useState<Set<LifecycleStage>>(new Set())
+
+  // Single source filter
+  const [sourceFilter, setSourceFilter] = useState<LeadSource | 'all'>('all')
 
   useEffect(() => {
     getContacts().then(setContacts)
   }, [])
 
+  function toggleStage(stage: LifecycleStage): void {
+    setSelectedStages((prev) => {
+      const next = new Set(prev)
+      if (next.has(stage)) next.delete(stage)
+      else next.add(stage)
+      return next
+    })
+  }
+
+  function clearStages(): void {
+    setSelectedStages(new Set())
+  }
+
   const filtered = contacts
     .filter((c) => {
       const q = search.toLowerCase()
-      return (
-        (!q ||
-          fullName(c).toLowerCase().includes(q) ||
-          c.email.toLowerCase().includes(q) ||
-          (c.company ?? '').toLowerCase().includes(q)) &&
-        (stageFilter === 'all' || c.lifecycleStage === stageFilter)
-      )
+      const matchSearch =
+        !q ||
+        fullName(c).toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.company ?? '').toLowerCase().includes(q)
+
+      const matchStage = selectedStages.size === 0 || selectedStages.has(c.lifecycleStage)
+      const matchSource = sourceFilter === 'all' || c.leadSource === sourceFilter
+
+      return matchSearch && matchStage && matchSource
     })
     .sort((a, b) => b.score - a.score)
 
@@ -49,15 +64,23 @@ export default function ContactsPage(): React.JSX.Element {
       <div className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-900">Contatti</h1>
-          <button
-            onClick={() => navigate('/contatti/nuovo')}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-          >
-            + Nuovo contatto
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/contatti/importa')}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              ↑ Importa CSV
+            </button>
+            <button
+              onClick={() => navigate('/contatti/nuovo')}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              + Nuovo contatto
+            </button>
+          </div>
         </div>
 
-        {/* Filtri */}
+        {/* Riga 1: ricerca + filtro fonte */}
         <div className="mt-3 flex items-center gap-3">
           <input
             type="text"
@@ -66,22 +89,57 @@ export default function ContactsPage(): React.JSX.Element {
             onChange={(e) => setSearch(e.target.value)}
             className="w-72 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
-          <div className="flex gap-1">
-            {STAGE_FILTERS.map((s) => (
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value as LeadSource | 'all')}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">Tutte le fonti</option>
+            {ALL_SOURCES.map((s) => (
+              <option key={s} value={s}>{LEAD_SOURCE_LABELS[s]}</option>
+            ))}
+          </select>
+          <span className="ml-auto text-xs text-gray-400">{filtered.length} contatti</span>
+        </div>
+
+        {/* Riga 2: filtro fase multi-select */}
+        <div className="mt-2 flex items-center gap-1.5">
+          <button
+            onClick={clearStages}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              selectedStages.size === 0
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tutti
+          </button>
+          {ALL_STAGES.map((stage) => {
+            const active = selectedStages.has(stage)
+            return (
               <button
-                key={s.value}
-                onClick={() => setStageFilter(s.value)}
+                key={stage}
+                onClick={() => toggleStage(stage)}
                 className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  stageFilter === s.value
-                    ? 'bg-indigo-600 text-white'
+                  active
+                    ? stagePillActive(stage)
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {s.label}
+                {STAGE_LABELS[stage]}
+                {active && (
+                  <span className="ml-1 opacity-70">✕</span>
+                )}
               </button>
-            ))}
-          </div>
-          <span className="ml-auto text-xs text-gray-400">{filtered.length} contatti</span>
+            )
+          })}
+          {selectedStages.size > 0 && (
+            <span className="ml-1 text-xs text-gray-400">
+              {selectedStages.size === 1
+                ? '1 fase selezionata'
+                : `${selectedStages.size} fasi selezionate`}
+            </span>
+          )}
         </div>
       </div>
 
@@ -140,4 +198,17 @@ export default function ContactsPage(): React.JSX.Element {
       </div>
     </div>
   )
+}
+
+// ─── Stage pill colours (active state) ───────────────────────────────────────
+
+function stagePillActive(stage: LifecycleStage): string {
+  const map: Record<LifecycleStage, string> = {
+    lead:     'bg-gray-700 text-white',
+    mql:      'bg-blue-600 text-white',
+    sql:      'bg-indigo-600 text-white',
+    customer: 'bg-green-600 text-white',
+    lost:     'bg-red-500 text-white',
+  }
+  return map[stage]
 }
